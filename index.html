@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bon de Livraison</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --surface2: #EFEFEA;
+    --border: #D8D6CE;
+    --primary: #1A1A2E;
+    --accent: #E8500A;
+    --accent2: #2563EB;
+    --text: #1A1A2E;
+    --text2: #6B6B7B;
+    --success: #16A34A;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* HEADER */
+  .app-header {
+    background: var(--primary);
+    color: white;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+  }
+
+  .app-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .app-header .logo .dot {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .btn-new {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-new:hover { opacity: 0.85; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 56px;
+    z-index: 99;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 6px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all .2s;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* SECTION CARDS */
+  .section-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* FIELDS */
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 5px;
+    letter-spacing: 0.2px;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="number"],
+  textarea,
+  select {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text);
+    transition: border-color .2s, box-shadow .2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    background: white;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+
+  .select-wrap {
+    position: relative;
+  }
+
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text2);
+    pointer-events: none;
+    font-size: 0.85rem;
+  }
+
+  /* PHOTO SECTION */
+  .photo-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+    background: var(--bg);
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+
+  .photo-area:hover { border-color: var(--accent2); background: #f0f5ff; }
+
+  .photo-area .icon { font-size: 2rem; margin-bottom: 6px; }
+  .photo-area p { font-size: 0.83rem; color: var(--text2); }
+  .photo-area strong { color: var(--accent2); }
+
+  #photoInput { display: none; }
+  #cameraInput { display: none; }
+
+  .photo-btns {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .btn-photo {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all .2s;
+    color: var(--text);
+  }
+
+  .btn-photo:hover { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-photo.camera { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .photo-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--border);
+  }
+
+  .photo-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .photo-thumb .del-btn {
+    position: absolute;
+    top: 4px; right: 4px;
+    background: rgba(0,0,0,0.65);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .photo-size {
+    position: absolute;
+    bottom: 4px; left: 4px;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    font-size: 0.62rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* PRINT — exclure toute la section photos */
+  @media print {
+    #photos-section { display: none !important; }
+    .print-photos-note {
+      display: block !important;
+      font-size: 0.82rem;
+      color: #555;
+      border: 1px dashed #aaa;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+    }
+  }
+  .print-photos-note { display: none; }
+
+  /* ARTICLES TABLE */
+  .articles-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .btn-import {
+    background: var(--accent2);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #excelInput { display: none; }
+
+  .articles-table-wrap { overflow-x: auto; border-radius: 8px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  table th {
+    background: var(--primary);
+    color: white;
+    padding: 9px 10px;
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  table tr:nth-child(even) td { background: var(--bg); }
+  table tr:last-child td { border-bottom: none; }
+
+  table td input {
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 2px;
+    width: 100%;
+    min-width: 50px;
+  }
+
+  table td input:focus {
+    outline: none;
+    border-bottom: 2px solid var(--accent2);
+    background: #f0f5ff;
+  }
+
+  .ref-col { font-family: 'IBM Plex Mono', monospace; color: var(--text2); font-size: 0.75rem; }
+
+  .btn-add-row {
+    margin-top: 10px;
+    width: 100%;
+    padding: 9px;
+    border: 2px dashed var(--border);
+    background: transparent;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-add-row:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .del-row-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #cc3333;
+    font-size: 1rem;
+    padding: 2px 4px;
+  }
+
+  /* SIGNATURE */
+  .sig-canvas {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    height: 130px;
+    background: white;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .sig-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .btn-clear-sig {
+    padding: 7px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--text2);
+  }
+
+  /* GENERATE */
+  .btn-generate {
+    width: 100%;
+    padding: 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+    transition: transform .15s, opacity .2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate:hover { opacity: 0.92; transform: translateY(-1px); }
+  .btn-generate:active { transform: scale(0.98); }
+  .btn-generate::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 5px; height: 100%;
+    background: var(--accent);
+  }
+
+  /* BON DE LIVRAISON LIST */
+  .bon-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    border-left: 4px solid var(--accent);
+    transition: transform .15s;
+  }
+  .bon-card:hover { transform: translateX(3px); }
+
+  .bon-card .bon-info .bon-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text2);
+  }
+  .bon-card .bon-info .bon-client {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin: 2px 0;
+  }
+  .bon-card .bon-info .bon-date {
+    font-size: 0.78rem;
+    color: var(--text2);
+  }
+
+  .bon-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn-icon {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all .2s;
+  }
+  .btn-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #FEF3C7;
+    color: #92400E;
+    margin-left: 6px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0;
+    transition: all .3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* PRINT */
+  @media print {
+    body { background: white; padding: 0; }
+    .app-header, .tabs, .btn-generate, .btn-photo, .btn-add-row,
+    .sig-actions, .del-row-btn, .btn-import, .photo-btns,
+    #btn-dl-photos, #photo-count-info { display: none !important; }
+    .page { display: block !important; padding: 10px; }
+    .section-card { box-shadow: none; border: 1px solid #ccc; }
+    .tabs, .tab { display: none; }
+    #page-bons { display: none !important; }
+    #page-nouveau { display: block !important; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text2);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.9rem; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .bon-num-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--text2);
+    float: right;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo">
+    <span class="dot"></span>
+    BL Power Flex
+  </div>
+  <button class="btn-new" onclick="switchTab('nouveau')">+ Nouveau BL</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('bons')" id="tab-bons">📋 Bons</div>
+  <div class="tab" onclick="switchTab('nouveau')" id="tab-nouveau">✏️ Nouveau</div>
+  <div class="tab" onclick="switchTab('articles')" id="tab-articles">📦 Articles</div>
+</div>
+
+<!-- PAGE: LISTE DES BONS -->
+<div class="page active" id="page-bons">
+  <div id="bons-list">
+    <div class="empty-state">
+      <div class="icon">📋</div>
+      <p>Aucun bon de livraison.<br>Créez votre premier bon !</p>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: NOUVEAU BON -->
+<div class="page" id="page-nouveau">
+
+  <!-- Numéro de bon -->
+  <div style="text-align:right;margin-bottom:8px">
+    <span class="bon-num-display" id="bon-num-display">BL-0001</span>
+  </div>
+
+  <!-- INFORMATIONS CLIENT -->
+  <div class="section-card">
+    <div class="section-title">Informations client</div>
+    <div class="field">
+      <label>Nom du client *</label>
+      <input type="text" id="clientNom" placeholder="Nom ou raison sociale">
+    </div>
+    <div class="field">
+      <label>Adresse d'intervention *</label>
+      <input type="text" id="clientAdresse" placeholder="Adresse complète">
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label>Date d'intervention *</label>
+        <input type="date" id="dateIntervention">
+      </div>
+      <div class="field">
+        <label>Technicien</label>
+        <input type="text" id="technicien" placeholder="Nom">
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCRIPTION INTERVENTION -->
+  <div class="section-card">
+    <div class="section-title">Intervention</div>
+    <div class="field">
+      <label>Description de l'intervention</label>
+      <textarea id="descIntervention" placeholder="Décrivez les travaux effectués..."></textarea>
+    </div>
+    <div class="field">
+      <label>Nature de la panne / intervention</label>
+      <div class="select-wrap">
+        <select id="naturePanne">
+          <option value="">-- Sélectionner --</option>
+          <option>Choc</option>
+          <option>Usure</option>
+          <option>Nouvelle adaptation</option>
+          <option>Modification</option>
+          <option>Réparation</option>
+          <option>Livraison</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFORMATIONS MATÉRIEL -->
+  <div class="section-card">
+    <div class="section-title">Informations matériel</div>
+    <div class="row-2">
+      <div class="field">
+        <label>Marque</label>
+        <input type="text" id="materielMarque" placeholder="Ex: Caterpillar">
+      </div>
+      <div class="field">
+        <label>Modèle</label>
+        <input type="text" id="materielModele" placeholder="Ex: 320D">
+      </div>
+    </div>
+    <div class="field">
+      <label>N° de série / Immatriculation</label>
+      <input type="text" id="materielSerie" placeholder="Ex: CAT320D-XXXXXX">
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label>Relevé kilométrique (km)</label>
+        <input type="number" id="relKm" placeholder="0" min="0">
+      </div>
+      <div class="field">
+        <label>Relevé horaire (h)</label>
+        <input type="number" id="relHeure" placeholder="0" min="0" step="0.1">
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLES -->
+  <div class="section-card">
+    <div class="section-title">Articles / Pièces</div>
+    <div class="articles-header">
+      <span style="font-size:0.82rem;color:var(--text2)"><span id="art-count">0</span> article(s)</span>
+      <button class="btn-import" onclick="document.getElementById('excelInput').click()">
+        📊 Importer Excel
+      </button>
+      <input type="file" id="excelInput" accept=".xlsx,.xls,.csv" onchange="importExcel(event)">
+    </div>
+    <div class="articles-table-wrap">
+      <table id="articles-table">
+        <thead>
+          <tr>
+            <th>Réf.</th>
+            <th>Désignation</th>
+            <th>Qté</th>
+            <th>P.U.</th>
+            <th>Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="articles-body">
+        </tbody>
+      </table>
+    </div>
+    <button class="btn-add-row" onclick="addArticleRow()">+ Ajouter une ligne</button>
+    <div style="margin-top:12px;text-align:right;">
+      <strong style="font-size:0.95rem;">Total HT : <span id="total-ht" style="color:var(--accent);font-family:'IBM Plex Mono',monospace">0,00 €</span></strong>
+    </div>
+  </div>
+
+  <!-- PHOTOS -->
+  <div class="section-card" id="photos-section">
+    <div class="section-title">Photos <span style="font-size:0.65rem;font-weight:400;color:var(--text2);text-transform:none;letter-spacing:0">(pièces jointes — hors PDF)</span></div>
+    <div class="photo-btns">
+      <button class="btn-photo camera" onclick="document.getElementById('cameraInput').click()">
+        📷 Appareil photo
+      </button>
+      <button class="btn-photo" onclick="document.getElementById('photoInput').click()">
+        🖼️ Galerie
+      </button>
+    </div>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhotos(event)">
+    <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotos(event)">
+
+    <!-- Info pièce jointe (hors impression) -->
+    <div id="photo-count-info" style="display:none;font-size:0.78rem;color:var(--accent2);background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:7px 10px;margin-bottom:8px;"></div>
+
+    <div class="photo-grid" id="photo-grid"></div>
+    <div id="no-photo" style="text-align:center;color:var(--text2);font-size:0.82rem;padding:14px 0;">Aucune photo ajoutée</div>
+
+    <!-- Bouton téléchargement séparé -->
+    <button id="btn-dl-photos" class="btn-generate" style="background:var(--accent2);margin-top:10px;font-size:0.85rem;padding:11px;display:none" onclick="downloadAllPhotos()">
+      📎 &nbsp; Télécharger les photos séparément
+    </button>
+  </div>
+
+  <!-- Note visible uniquement à l'impression, à la place des photos -->
+  <div class="print-photos-note" id="print-photos-note"></div>
+  <div class="section-card">
+    <div class="section-title">Signature client</div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Nom du signataire</label>
+      <input type="text" id="nomSignataire" placeholder="Prénom Nom de la personne qui signe">
+    </div>
+    <canvas class="sig-canvas" id="sigCanvas" style="display:block;width:100%;height:130px;border:1.5px solid var(--border);border-radius:8px;background:white;cursor:crosshair;touch-action:none;"></canvas>
+    <div class="sig-actions">
+      <button class="btn-clear-sig" onclick="clearSignature()">🗑️ Effacer</button>
+      <span style="font-size:0.78rem;color:var(--text2);line-height:1.4;margin-left:8px">✍️ Signez avec le doigt ou la souris</span>
+    </div>
+  </div>
+
+  <!-- OBSERVATIONS -->
+  <div class="section-card">
+    <div class="section-title">Observations</div>
+    <div class="field">
+      <textarea id="observations" placeholder="Remarques, conditions particulières..."></textarea>
+    </div>
+  </div>
+
+  <button class="btn-generate" onclick="saveBon()">
+    💾 &nbsp; Enregistrer le bon de livraison
+  </button>
+  <button class="btn-generate" style="background:var(--accent);margin-top:8px" onclick="generatePDF()">
+    📄 &nbsp; Générer le PDF
+  </button>
+  <button class="btn-generate" style="background:#16A34A;margin-top:8px" onclick="openMailApp()">
+    ✉️ &nbsp; Envoyer par mail
+  </button>
+</div>
+
+<!-- PAGE: CATALOGUE ARTICLES -->
+<div class="page" id="page-articles">
+  <div class="section-card">
+    <div class="section-title">Catalogue articles</div>
+    <p style="font-size:0.83rem;color:var(--text2);margin-bottom:14px">
+      Importez votre catalogue depuis un fichier Excel. Le fichier doit contenir les colonnes : <strong>Référence, Désignation, Prix unitaire</strong>.
+    </p>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn-import" onclick="document.getElementById('catalogueInput').click()">
+        📊 Importer catalogue
+      </button>
+      <input type="file" id="catalogueInput" accept=".xlsx,.xls,.csv" onchange="importCatalogue(event)" style="display:none">
+      <button class="btn-icon" onclick="exportCatalogueTemplate()" title="Télécharger modèle">📥 Modèle</button>
+    </div>
+    <div style="margin-top:16px" id="catalogue-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// INIT
+// ============================================================
+let bons = JSON.parse(localStorage.getItem('bl_bons') || '[]');
+let catalogue = JSON.parse(localStorage.getItem('bl_catalogue') || '[]');
+let photos = [];
+let editingIndex = -1;
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'bons')    renderBonsList();
+  if (name === 'articles') renderCatalogue();
+  if (name === 'nouveau') {
+    // Le canvas est maintenant visible, on peut le dimensionner correctement
+    requestAnimationFrame(() => setupCanvas());
+  }
+}
+
+// ============================================================
+// BON NUMBER
+// ============================================================
+function nextBonNum() {
+  const n = bons.length + 1;
+  return 'PA-' + String(n).padStart(4, '0');
+}
+
+function initNewBon() {
+  editingIndex = -1;
+  document.getElementById('bon-num-display').textContent = nextBonNum();
+  document.getElementById('dateIntervention').value = new Date().toISOString().split('T')[0];
+  ['clientNom','clientAdresse','technicien','descIntervention','materielMarque',
+   'materielModele','materielSerie','relKm','relHeure','observations','nomSignataire'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('naturePanne').value = '';
+  photos = [];
+  renderPhotoGrid();
+  clearSignature();
+  document.getElementById('articles-body').innerHTML = '';
+  updateTotals();
+}
+
+// ============================================================
+// ARTICLES TABLE
+// ============================================================
+function addArticleRow(ref='', des='', qty=1, pu='') {
+  const body = document.getElementById('articles-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="ref-col"><input type="text" value="${ref}" placeholder="REF" oninput="updateTotals()"></td>
+    <td><input type="text" value="${des}" placeholder="Désignation" style="min-width:120px" oninput="updateTotals()"></td>
+    <td><input type="number" value="${qty}" min="0" step="any" style="width:52px" oninput="updateTotals()"></td>
+    <td><input type="number" value="${pu}" min="0" step="0.01" placeholder="0.00" style="width:70px" oninput="updateTotals()"></td>
+    <td class="line-total">0,00</td>
+    <td><button class="del-row-btn" onclick="this.closest('tr').remove();updateTotals()">✕</button></td>
+  `;
+  body.appendChild(tr);
+  updateTotals();
+}
+
+function updateTotals() {
+  let total = 0;
+  document.querySelectorAll('#articles-body tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const qty = parseFloat(inputs[2]?.value) || 0;
+    const pu = parseFloat(inputs[3]?.value) || 0;
+    const line = qty * pu;
+    total += line;
+    tr.querySelector('.line-total').textContent = line.toFixed(2).replace('.', ',') + ' €';
+  });
+  document.getElementById('total-ht').textContent = total.toFixed(2).replace('.', ',') + ' €';
+  document.getElementById('art-count').textContent = document.querySelectorAll('#articles-body tr').length;
+}
+
+function getArticles() {
+  const rows = [];
+  document.querySelectorAll('#articles-body tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    rows.push({
+      ref: inputs[0]?.value || '',
+      des: inputs[1]?.value || '',
+      qty: inputs[2]?.value || '1',
+      pu: inputs[3]?.value || '0'
+    });
+  });
+  return rows;
+}
+
+function loadArticles(arr) {
+  document.getElementById('articles-body').innerHTML = '';
+  arr.forEach(a => addArticleRow(a.ref, a.des, a.qty, a.pu));
+}
+
+// ============================================================
+// IMPORT EXCEL (for bon)
+// ============================================================
+function importExcel(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const wb = XLSX.read(ev.target.result, {type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    data.forEach((row, i) => {
+      if (i === 0) return; // skip header
+      const ref = String(row[0] || '');
+      const des = String(row[1] || '');
+      const qty = row[2] || 1;
+      const pu  = row[3] || 0;
+      if (des || ref) addArticleRow(ref, des, qty, pu);
+    });
+    toast('Excel importé (' + (data.length-1) + ' lignes)');
+  };
+  reader.readAsBinaryString(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// CATALOGUE
+// ============================================================
+function importCatalogue(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const wb = XLSX.read(ev.target.result, {type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    catalogue = [];
+    data.forEach((row, i) => {
+      if (i === 0) return;
+      if (row[0] || row[1]) catalogue.push({ ref: String(row[0]||''), des: String(row[1]||''), pu: row[2]||0 });
+    });
+    localStorage.setItem('bl_catalogue', JSON.stringify(catalogue));
+    renderCatalogue();
+    toast(catalogue.length + ' articles chargés');
+  };
+  reader.readAsBinaryString(file);
+  e.target.value = '';
+}
+
+function renderCatalogue() {
+  const div = document.getElementById('catalogue-list');
+  if (!catalogue.length) {
+    div.innerHTML = '<p style="color:var(--text2);font-size:0.83rem;text-align:center;padding:20px">Aucun article. Importez un fichier Excel.</p>';
+    return;
+  }
+  let html = '<div class="articles-table-wrap"><table><thead><tr><th>Réf.</th><th>Désignation</th><th>P.U.</th><th></th></tr></thead><tbody>';
+  catalogue.forEach((a, i) => {
+    html += `<tr><td class="ref-col">${a.ref}</td><td>${a.des}</td><td style="font-family:'IBM Plex Mono',monospace">${parseFloat(a.pu).toFixed(2)} €</td>
+    <td><button class="btn-icon" onclick="addFromCatalogue(${i})" title="Ajouter au bon">➕</button></td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  div.innerHTML = html;
+}
+
+function addFromCatalogue(i) {
+  const a = catalogue[i];
+  switchTab('nouveau');
+  addArticleRow(a.ref, a.des, 1, a.pu);
+  toast('Article ajouté au bon');
+}
+
+function exportCatalogueTemplate() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Référence', 'Désignation', 'Prix unitaire HT'],
+    ['REF001', 'Filtre à huile', '12.50'],
+    ['REF002', 'Courroie de transmission', '35.00'],
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Catalogue');
+  XLSX.writeFile(wb, 'modele_catalogue.xlsx');
+  toast('Modèle téléchargé');
+}
+
+// ============================================================
+// PHOTOS — compression + séparation PDF
+// ============================================================
+
+// Compression + filigrane BL
+function compressAndWatermark(file, maxPx, quality, bonNum, photoIndex, callback) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      // Redimensionnement
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx2 = c.getContext('2d');
+      ctx2.drawImage(img, 0, 0, w, h);
+
+      // --- Filigrane ---
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+      const line1 = bonNum;
+      const line2 = `Photo ${String(photoIndex).padStart(2,'0')} · ${dateStr}`;
+
+      const fontSize = Math.max(16, Math.round(w * 0.032));
+      const pad = Math.round(fontSize * 0.6);
+
+      ctx2.font = `bold ${fontSize}px IBM Plex Mono, monospace`;
+      const w1 = ctx2.measureText(line1).width;
+      ctx2.font = `${Math.round(fontSize * 0.78)}px IBM Plex Mono, monospace`;
+      const w2 = ctx2.measureText(line2).width;
+      const boxW = Math.max(w1, w2) + pad * 2;
+      const boxH = fontSize + Math.round(fontSize * 0.78) + pad * 2 + Math.round(fontSize * 0.3);
+
+      const x = w - boxW - Math.round(w * 0.02);
+      const y = h - boxH - Math.round(h * 0.02);
+
+      // Fond semi-transparent
+      ctx2.fillStyle = 'rgba(0, 0, 0, 0.52)';
+      roundRect(ctx2, x, y, boxW, boxH, 6);
+      ctx2.fill();
+
+      // Trait accent orange en haut du bloc
+      ctx2.fillStyle = '#E8500A';
+      roundRect(ctx2, x, y, boxW, 4, 2);
+      ctx2.fill();
+
+      // Texte ligne 1 — numéro BL
+      ctx2.fillStyle = '#FFFFFF';
+      ctx2.font = `bold ${fontSize}px IBM Plex Mono, monospace`;
+      ctx2.fillText(line1, x + pad, y + pad + fontSize);
+
+      // Texte ligne 2 — photo + date
+      ctx2.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx2.font = `${Math.round(fontSize * 0.78)}px IBM Plex Mono, monospace`;
+      ctx2.fillText(line2, x + pad, y + pad + fontSize + Math.round(fontSize * 0.3) + Math.round(fontSize * 0.78));
+
+      callback(c.toDataURL('image/jpeg', quality));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Helper pour coins arrondis sur canvas
+function roundRect(ctx2, x, y, w, h, r) {
+  ctx2.beginPath();
+  ctx2.moveTo(x + r, y);
+  ctx2.lineTo(x + w - r, y);
+  ctx2.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx2.lineTo(x + w, y + h - r);
+  ctx2.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx2.lineTo(x + r, y + h);
+  ctx2.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx2.lineTo(x, y + r);
+  ctx2.quadraticCurveTo(x, y, x + r, y);
+  ctx2.closePath();
+}
+
+function handlePhotos(e) {
+  const files = Array.from(e.target.files);
+  const bonNum = document.getElementById('bon-num-display').textContent || 'BL-????';
+  files.forEach(file => {
+    const photoIndex = photos.length + 1;
+    compressAndWatermark(file, 1200, 0.75, bonNum, photoIndex, compressed => {
+      photos.push(compressed);
+      renderPhotoGrid();
+    });
+  });
+  e.target.value = '';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photo-grid');
+  const noPhoto = document.getElementById('no-photo');
+  const dlBtn = document.getElementById('btn-dl-photos');
+  const photoCount = document.getElementById('photo-count-info');
+
+  if (!photos.length) {
+    grid.innerHTML = '';
+    noPhoto.style.display = 'block';
+    if (dlBtn) dlBtn.style.display = 'none';
+    if (photoCount) photoCount.style.display = 'none';
+    return;
+  }
+  noPhoto.style.display = 'none';
+  if (dlBtn) dlBtn.style.display = 'flex';
+  if (photoCount) {
+    photoCount.style.display = 'block';
+    photoCount.textContent = `📎 ${photos.length} photo(s) en pièce jointe — non incluse(s) dans le PDF`;
+  }
+
+  grid.innerHTML = photos.map((src, i) => {
+    // Estimer la taille en Ko
+    const kb = Math.round((src.length * 3/4) / 1024);
+    return `
+    <div class="photo-thumb">
+      <img src="${src}" alt="Photo ${i+1}">
+      <button class="del-btn" onclick="removePhoto(${i})">✕</button>
+      <div class="photo-size">${kb} Ko</div>
+    </div>`;
+  }).join('');
+}
+
+function removePhoto(i) {
+  photos.splice(i, 1);
+  renderPhotoGrid();
+}
+
+// Télécharger toutes les photos une par une
+function downloadAllPhotos() {
+  if (!photos.length) return;
+  const bonNum = document.getElementById('bon-num-display').textContent || 'BL';
+  photos.forEach((src, i) => {
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = `${bonNum}_photo_${String(i+1).padStart(2,'0')}.jpg`;
+    a.click();
+  });
+  toast(`${photos.length} photo(s) téléchargée(s)`);
+}
+
+// ============================================================
+// SIGNATURE — robuste même si le canvas est dans un onglet caché
+// ============================================================
+let sigCanvas, sigCtx, sigDrawing = false, sigData = null;
+
+function initSignature() {
+  sigCanvas = document.getElementById('sigCanvas');
+  if (!sigCanvas) return;
+  sigCtx = sigCanvas.getContext('2d');
+  // Attacher les events une seule fois
+  sigCanvas.addEventListener('mousedown',  onSigStart);
+  sigCanvas.addEventListener('mousemove',  onSigMove);
+  sigCanvas.addEventListener('mouseup',    onSigEnd);
+  sigCanvas.addEventListener('mouseleave', onSigEnd);
+  sigCanvas.addEventListener('touchstart', onSigStart, { passive: false });
+  sigCanvas.addEventListener('touchmove',  onSigMove,  { passive: false });
+  sigCanvas.addEventListener('touchend',   onSigEnd,   { passive: false });
+}
+
+function setupCanvas() {
+  if (!sigCanvas) return;
+  // Forcer la largeur CSS réelle via offsetWidth (fonctionne même si visible)
+  const w = sigCanvas.offsetWidth  || sigCanvas.parentElement.offsetWidth || 300;
+  const h = sigCanvas.offsetHeight || 130;
+  const dpr = window.devicePixelRatio || 1;
+  // Sauvegarder le dessin existant si présent
+  let saved = null;
+  if (sigCanvas.width > 0 && sigCanvas.height > 0 && sigData) {
+    saved = sigData;
+  }
+  sigCanvas.width  = w * dpr;
+  sigCanvas.height = h * dpr;
+  sigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sigCtx.strokeStyle = '#1A1A2E';
+  sigCtx.lineWidth   = 2.5;
+  sigCtx.lineCap     = 'round';
+  sigCtx.lineJoin    = 'round';
+  // Restaurer le dessin
+  if (saved) {
+    const img = new Image();
+    img.onload = () => sigCtx.drawImage(img, 0, 0, w, h);
+    img.src = saved;
+  }
+}
+
+function getSigPos(e) {
+  const rect = sigCanvas.getBoundingClientRect();
+  const src  = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+function onSigStart(e) {
+  e.preventDefault();
+  // Si canvas pas encore dimensionné (onglet caché au départ), le faire maintenant
+  if (sigCanvas.width === 0 || sigCanvas.height === 0) setupCanvas();
+  sigDrawing = true;
+  const p = getSigPos(e);
+  sigCtx.beginPath();
+  sigCtx.moveTo(p.x, p.y);
+}
+function onSigMove(e) {
+  e.preventDefault();
+  if (!sigDrawing) return;
+  const p = getSigPos(e);
+  sigCtx.lineTo(p.x, p.y);
+  sigCtx.stroke();
+}
+function onSigEnd(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!sigDrawing) return;
+  sigDrawing = false;
+  sigData = sigCanvas.toDataURL('image/png');
+}
+
+function clearSignature() {
+  if (!sigCtx) return;
+  sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  sigData = null;
+}
+
+// ============================================================
+// EMAILJS CONFIG
+// ⚠️ Remplacez ces 3 valeurs par les vôtres sur emailjs.com
+// ============================================================
+const EMAILJS_PUBLIC_KEY  = 'VOTRE_PUBLIC_KEY';   // Account > API Keys
+const EMAILJS_SERVICE_ID  = 'VOTRE_SERVICE_ID';   // Email Services
+const EMAILJS_TEMPLATE_ID = 'VOTRE_TEMPLATE_ID';  // Email Templates
+
+// ============================================================
+// SAVE & ENVOI MAIL
+// ============================================================
+function saveBon() {
+  const clientNom = document.getElementById('clientNom').value.trim();
+  if (!clientNom) { toast('⚠️ Veuillez saisir le nom du client'); return; }
+  const dateInt = document.getElementById('dateIntervention').value;
+  if (!dateInt) { toast('⚠️ Veuillez saisir la date d\'intervention'); return; }
+
+  const bon = {
+    num: editingIndex >= 0 ? bons[editingIndex].num : nextBonNum(),
+    date: new Date().toISOString(),
+    clientNom,
+    clientAdresse: document.getElementById('clientAdresse').value,
+    dateIntervention: dateInt,
+    technicien: document.getElementById('technicien').value,
+    descIntervention: document.getElementById('descIntervention').value,
+    naturePanne: document.getElementById('naturePanne').value,
+    materielMarque: document.getElementById('materielMarque').value,
+    materielModele: document.getElementById('materielModele').value,
+    materielSerie: document.getElementById('materielSerie').value,
+    relKm: document.getElementById('relKm').value,
+    relHeure: document.getElementById('relHeure').value,
+    articles: getArticles(),
+    observations: document.getElementById('observations').value,
+    nomSignataire: document.getElementById('nomSignataire').value,
+    photos,
+    signature: sigData
+  };
+
+  if (editingIndex >= 0) {
+    bons[editingIndex] = bon;
+  } else {
+    bons.push(bon);
+  }
+  localStorage.setItem('bl_bons', JSON.stringify(bons));
+
+  // Envoi par mail
+  sendByEmail(bon);
+
+  initNewBon();
+  switchTab('bons');
+}
+
+function buildArticlesText(articles) {
+  if (!articles || !articles.length) return 'Aucun article';
+  return articles.map(a => {
+    const total = (parseFloat(a.qty)||0) * (parseFloat(a.pu)||0);
+    return `• [${a.ref||'—'}] ${a.des||'—'}  ×${a.qty}  ${parseFloat(a.pu||0).toFixed(2)} € = ${total.toFixed(2)} €`;
+  }).join('\n');
+}
+
+function sendByEmail(bon) {
+  const d = bon.dateIntervention ? new Date(bon.dateIntervention).toLocaleDateString('fr-FR') : '—';
+  const total = (bon.articles||[]).reduce((s,a) => s + (parseFloat(a.qty)||0)*(parseFloat(a.pu)||0), 0);
+
+  const templateParams = {
+    to_email:     'contact@power-flex.fr',
+    bon_num:      bon.num,
+    client_nom:   bon.clientNom,
+    client_adresse: bon.clientAdresse || '—',
+    date_intervention: d,
+    technicien:   bon.technicien || '—',
+    nature_panne: bon.naturePanne || '—',
+    description:  bon.descIntervention || '—',
+    marque:       bon.materielMarque || '—',
+    modele:       bon.materielModele || '—',
+    serie:        bon.materielSerie  || '—',
+    rel_km:       bon.relKm   ? bon.relKm   + ' km' : '—',
+    rel_heure:    bon.relHeure ? bon.relHeure + ' h'  : '—',
+    articles:     buildArticlesText(bon.articles),
+    total_ht:     total.toFixed(2) + ' €',
+    observations: bon.observations || '—',
+    nb_photos:    bon.photos ? bon.photos.length : 0,
+    signature:    bon.signature ? '[Signature présente]' : '[Pas de signature]',
+  };
+
+  // Vérif config
+  if (EMAILJS_PUBLIC_KEY === 'VOTRE_PUBLIC_KEY') {
+    toast('⚠️ EmailJS non configuré — bon sauvegardé localement');
+    showEmailjsSetupBanner();
+    return;
+  }
+
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+  toast('📧 Envoi en cours…');
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+    .then(() => toast('✅ Bon envoyé à contact@power-flex.fr'))
+    .catch(err => {
+      console.error('EmailJS error:', err);
+      toast('❌ Échec envoi mail — bon sauvegardé quand même');
+    });
+}
+
+function showEmailjsSetupBanner() {
+  const existing = document.getElementById('emailjs-banner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'emailjs-banner';
+  banner.style.cssText = `
+    position:fixed;bottom:80px;left:12px;right:12px;
+    background:#1e3a5f;color:white;border-radius:10px;
+    padding:14px 16px;font-size:0.82rem;line-height:1.6;
+    z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  `;
+  banner.innerHTML = `
+    <strong style="font-size:0.9rem">⚙️ Configurer l'envoi mail</strong><br>
+    1. Créez un compte gratuit sur <a href="https://emailjs.com" target="_blank" style="color:#93c5fd">emailjs.com</a><br>
+    2. Ajoutez un service Gmail/SMTP → copiez le <b>Service ID</b><br>
+    3. Créez un template → copiez le <b>Template ID</b><br>
+    4. Account &gt; API Keys → copiez la <b>Public Key</b><br>
+    5. Remplacez les 3 valeurs dans le fichier HTML (lignes EMAILJS_…)<br>
+    <button onclick="document.getElementById('emailjs-banner').remove()" style="margin-top:8px;background:#E8500A;border:none;color:white;padding:5px 14px;border-radius:5px;cursor:pointer;font-family:inherit">Fermer</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+function editBon(i) {
+  const bon = bons[i];
+  editingIndex = i;
+  switchTab('nouveau');
+  document.getElementById('bon-num-display').textContent = bon.num;
+  document.getElementById('clientNom').value = bon.clientNom || '';
+  document.getElementById('clientAdresse').value = bon.clientAdresse || '';
+  document.getElementById('dateIntervention').value = bon.dateIntervention || '';
+  document.getElementById('technicien').value = bon.technicien || '';
+  document.getElementById('descIntervention').value = bon.descIntervention || '';
+  document.getElementById('naturePanne').value = bon.naturePanne || '';
+  document.getElementById('materielMarque').value = bon.materielMarque || '';
+  document.getElementById('materielModele').value = bon.materielModele || '';
+  document.getElementById('materielSerie').value = bon.materielSerie || '';
+  document.getElementById('relKm').value    = bon.relKm    || '';
+  document.getElementById('relHeure').value = bon.relHeure || '';
+  document.getElementById('observations').value  = bon.observations  || '';
+  document.getElementById('nomSignataire').value = bon.nomSignataire || '';
+  photos = bon.photos ? [...bon.photos] : [];
+  renderPhotoGrid();
+  loadArticles(bon.articles || []);
+  // Restaurer la signature après que le canvas soit visible
+  sigData = bon.signature || null;
+  clearSignature();
+  if (bon.signature) {
+    requestAnimationFrame(() => {
+      setupCanvas();
+      const img = new Image();
+      img.onload = () => {
+        const dpr = window.devicePixelRatio || 1;
+        sigCtx.drawImage(img, 0, 0, sigCanvas.width / dpr, sigCanvas.height / dpr);
+      };
+      img.src = bon.signature;
+    });
+  }
+}
+
+function deleteBon(i) {
+  if (!confirm('Supprimer ce bon de livraison ?')) return;
+  bons.splice(i, 1);
+  localStorage.setItem('bl_bons', JSON.stringify(bons));
+  renderBonsList();
+  toast('Bon supprimé');
+}
+
+// ============================================================
+// RENDER BONS LIST
+// ============================================================
+function renderBonsList() {
+  const div = document.getElementById('bons-list');
+  if (!bons.length) {
+    div.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Aucun bon de livraison.<br>Créez votre premier bon !</p></div>`;
+    return;
+  }
+  div.innerHTML = [...bons].reverse().map((b, ri) => {
+    const i = bons.length - 1 - ri;
+    const d = b.dateIntervention ? new Date(b.dateIntervention).toLocaleDateString('fr-FR') : '—';
+    return `<div class="bon-card">
+      <div class="bon-info" onclick="editBon(${i})">
+        <div class="bon-num">${b.num}</div>
+        <div class="bon-client">${b.clientNom}<span class="badge">${b.naturePanne||'—'}</span></div>
+        <div class="bon-date">📅 ${d} &nbsp;|&nbsp; ${b.articles?.length||0} article(s)</div>
+      </div>
+      <div class="bon-actions">
+        <button class="btn-icon" onclick="generatePDFByIndex(${i})" title="Télécharger PDF">📄</button>
+        <button class="btn-icon" onclick="openMailByIndex(${i})" title="Envoyer par mail" style="color:#16A34A">✉️</button>
+        <button class="btn-icon" onclick="deleteBon(${i})" title="Supprimer" style="color:#cc3333">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// GÉNÉRATION PDF avec jsPDF
+// ============================================================
+function getBonCourant() {
+  return {
+    num:              document.getElementById('bon-num-display').textContent || 'PA-????',
+    clientNom:        document.getElementById('clientNom').value,
+    clientAdresse:    document.getElementById('clientAdresse').value,
+    dateIntervention: document.getElementById('dateIntervention').value,
+    technicien:       document.getElementById('technicien').value,
+    descIntervention: document.getElementById('descIntervention').value,
+    naturePanne:      document.getElementById('naturePanne').value,
+    materielMarque:   document.getElementById('materielMarque').value,
+    materielModele:   document.getElementById('materielModele').value,
+    materielSerie:    document.getElementById('materielSerie').value,
+    relKm:            document.getElementById('relKm').value,
+    relHeure:         document.getElementById('relHeure').value,
+    observations:     document.getElementById('observations').value,
+    nomSignataire:    document.getElementById('nomSignataire').value,
+    articles:         getArticles(),
+    signature:        sigData,
+    nbPhotos:         photos.length
+  };
+}
+
+function generatePDF(bonData) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const bon = bonData || getBonCourant();
+
+  const W = 210, ML = 14, MR = 14;
+  const CW = W - ML - MR; // 182mm
+  const RED    = [204, 0, 0];
+  const ORANGE = [232, 80, 10];
+  const BLACK  = [0, 0, 0];
+  const DARK   = [30, 30, 30];
+  const GREY   = [120, 120, 120];
+  const LGREY  = [220, 220, 220];
+  const WHITE  = [255, 255, 255];
+  const LBLUE  = [37, 99, 235];
+
+  function checkPage(needed) {
+    if (y + needed > 272) { doc.addPage(); y = 15; }
+  }
+
+  // ── helpers texte coloré ─────────────────────────────────
+  function labelVal(lbl, val, x, yy, lblW, valColor) {
+    doc.setTextColor(...DARK);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(lbl, x, yy);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...(valColor || ORANGE));
+    const lines = doc.splitTextToSize(String(val || ''), 90);
+    doc.text(lines, x + lblW, yy);
+    doc.setTextColor(...DARK);
+    doc.setFont('helvetica', 'normal');
+  }
+
+  let y = 10;
+
+  // ══════════════════════════════════════════════════════════
+  // HEADER — logo texte gauche + numéro rouge droite
+  // ══════════════════════════════════════════════════════════
+
+  // Logo "POWER" en gris foncé + "flex" en orange italique simulé
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 50);
+  doc.text('POWER', ML, y + 8);
+  doc.setTextColor(...ORANGE);
+  doc.setFont('helvetica', 'bolditalic');
+  doc.text('flex', ML + 38, y + 8);
+
+  // Trait décoratif sous logo
+  doc.setDrawColor(...ORANGE);
+  doc.setLineWidth(0.8);
+  doc.line(ML, y + 10, ML + 60, y + 10);
+  doc.setLineWidth(0.2);
+
+  // Slogan sous logo
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...GREY);
+  doc.text('Hydraulique & Flexibles industriels', ML, y + 14);
+
+  // Numéro bon — rouge aligné à droite
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...RED);
+  doc.text(bon.num, W - MR, y + 8, { align: 'right' });
+
+  y += 22;
+
+  // Ligne séparatrice fine
+  doc.setDrawColor(...LGREY);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y, W - MR, y);
+  y += 8;
+
+  // ══════════════════════════════════════════════════════════
+  // NOM CLIENT — centré, gras, souligné
+  // ══════════════════════════════════════════════════════════
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...BLACK);
+  const clientName = bon.clientNom || ' ';
+  doc.text(clientName, W / 2, y, { align: 'center' });
+  // Soulignement manuel
+  const nameW = doc.getTextWidth(clientName);
+  doc.setDrawColor(...BLACK);
+  doc.setLineWidth(0.5);
+  doc.line(W/2 - nameW/2, y + 1.2, W/2 + nameW/2, y + 1.2);
+  doc.setLineWidth(0.2);
+  y += 10;
+
+  // ══════════════════════════════════════════════════════════
+  // BLOC ADRESSE — encadré à droite (comme le modèle)
+  // ══════════════════════════════════════════════════════════
+  const addrBoxX = W - MR - 80;
+  const addrBoxW = 80;
+  doc.setDrawColor(...DARK);
+  doc.setLineWidth(0.3);
+  doc.rect(addrBoxX, y - 2, addrBoxW, 20, 'S');
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text("Adresse d'intervention :", addrBoxX + 3, y + 3);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  const addrLines = doc.splitTextToSize(bon.clientAdresse || '—', addrBoxW - 6);
+  doc.text(addrLines, addrBoxX + 3, y + 8);
+
+  // Ville (2e ligne du bloc)
+  doc.setDrawColor(...LGREY);
+  doc.setLineWidth(0.2);
+  doc.line(addrBoxX, y + 12, addrBoxX + addrBoxW, y + 12);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.setFontSize(8.5);
+  doc.text("Ville d'intervention : ", addrBoxX + 3, y + 16.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  // Extraire ville si possible (dernier mot de l'adresse ou champ vide)
+  doc.text('', addrBoxX + 45, y + 16.5);
+
+  y += 4;
+
+  // ══════════════════════════════════════════════════════════
+  // N° DE COMMANDE + DESCRIPTION
+  // ══════════════════════════════════════════════════════════
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text('N\u00b0 de commande : ', ML, y + 8);
+
+  y += 14;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text("Description de l'intervention : ", ML, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  const descLines = doc.splitTextToSize(bon.descIntervention || '—', 130);
+  doc.text(descLines, ML + 60, y);
+  y += descLines.length * 5 + 4;
+
+  // ══════════════════════════════════════════════════════════
+  // TECHNICIEN / DATE / HEURES
+  // ══════════════════════════════════════════════════════════
+  const dateF = bon.dateIntervention
+    ? new Date(bon.dateIntervention).toLocaleDateString('fr-FR') : '—';
+
+  doc.setFontSize(9);
+  labelVal('Technicien : ', bon.technicien || '—', ML, y, 25, ORANGE);
+  y += 6;
+  labelVal('Date : ', dateF, ML, y, 13, ORANGE);
+
+  // Heures sur la droite (même ligne que date)
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text("Heure d'arriver : ", W/2, y - 6);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  doc.text('—', W/2 + 32, y - 6);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text('Heure de d\u00e9part : ', W/2, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  doc.text('—', W/2 + 32, y);
+
+  y += 8;
+
+  // ══════════════════════════════════════════════════════════
+  // TABLEAU ARTICLES — deux colonnes comme le modèle
+  // Référence | Quantité  (gauche) + colonnes extras (droite)
+  // ══════════════════════════════════════════════════════════
+  checkPage(30);
+
+  const tLeft  = ML;
+  const tMid   = W / 2 + 2;
+  const tW1    = W/2 - ML - 2;   // largeur partie gauche
+  const tW2    = W/2 - MR - 2;   // largeur partie droite
+  const rowH   = 7;
+  const hdrH   = 7;
+
+  // En-tête gauche
+  doc.setFillColor(...WHITE);
+  doc.setDrawColor(...DARK);
+  doc.setLineWidth(0.3);
+  doc.rect(tLeft, y, tW1, hdrH, 'S');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...BLACK);
+  // Soulignement header
+  doc.text('Reference', tLeft + tW1*0.2, y + 5);
+  const rW = doc.getTextWidth('Reference');
+  doc.line(tLeft + tW1*0.2, y + 5.5, tLeft + tW1*0.2 + rW, y + 5.5);
+  doc.text('Quantit\u00e9', tLeft + tW1*0.65, y + 5);
+  const qW = doc.getTextWidth('Quantit\u00e9');
+  doc.line(tLeft + tW1*0.65, y + 5.5, tLeft + tW1*0.65 + qW, y + 5.5);
+
+  // En-tête droite (vide comme dans le modèle, juste le cadre)
+  doc.rect(tMid, y, tW2, hdrH, 'S');
+  y += hdrH;
+
+  // Lignes articles
+  const arts = bon.articles || [];
+  const maxRows = Math.max(arts.length, 3);
+  for (let i = 0; i < maxRows; i++) {
+    checkPage(rowH + 2);
+    const a = arts[i] || { ref: '', des: '', qty: '', pu: '' };
+
+    // Cellule gauche ref + qté
+    doc.setFillColor(i % 2 === 0 ? 255 : 250, i % 2 === 0 ? 255 : 250, i % 2 === 0 ? 255 : 250);
+    doc.rect(tLeft, y, tW1, rowH, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...DARK);
+    doc.text(String(a.ref || ''), tLeft + 3, y + 5, { maxWidth: tW1*0.55 });
+    doc.text(String(a.qty || ''), tLeft + tW1*0.72, y + 5);
+
+    // Cellule droite désignation + qté si présent
+    doc.setFillColor(i % 2 === 0 ? 255 : 250, i % 2 === 0 ? 255 : 250, i % 2 === 0 ? 255 : 250);
+    doc.rect(tMid, y, tW2, rowH, 'FD');
+    if (a.des) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DARK);
+      doc.text(String(a.des || ''), tMid + 3, y + 5, { maxWidth: tW2 * 0.7 });
+      if (a.pu) {
+        doc.text(String(a.qty || ''), tMid + tW2 * 0.8, y + 5);
+      }
+    }
+    y += rowH;
+  }
+
+  y += 6;
+
+  // ══════════════════════════════════════════════════════════
+  // DÉPLACEMENT / FACTURATION / MAIN D'ŒUVRE — aligné droite
+  // ══════════════════════════════════════════════════════════
+  checkPage(25);
+  const rx = W / 2 + 10;
+  doc.setFontSize(9);
+  labelVal('D\u00e9placement : ', 'Standard', rx, y, 28, ORANGE);
+  y += 6;
+  labelVal('Facturation : ', 'Standard', rx, y, 24, ORANGE);
+  y += 6;
+  labelVal("Main d'\u0153uvre : ", '—', rx, y, 30, ORANGE);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text(' Heures', rx + 30 + doc.getTextWidth('—'), y);
+  y += 10;
+
+  // ══════════════════════════════════════════════════════════
+  // OBSERVATION
+  // ══════════════════════════════════════════════════════════
+  checkPage(18);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  doc.text('Observation: ', ML, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  const obsLines = doc.splitTextToSize(bon.observations || '—', CW - 28);
+  doc.text(obsLines, ML + 26, y);
+  y += obsLines.length * 5 + 10;
+
+  // ══════════════════════════════════════════════════════════
+  // NOTE PHOTOS
+  // ══════════════════════════════════════════════════════════
+  if ((bon.nbPhotos || 0) > 0) {
+    checkPage(10);
+    doc.setFillColor(239, 246, 255);
+    doc.rect(ML, y, CW, 8, 'F');
+    doc.setDrawColor(147, 197, 253);
+    doc.rect(ML, y, CW, 8, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...LBLUE);
+    doc.text(`Photos jointes : ${bon.nbPhotos} fichier(s) separe(s) — ${bon.num}_photo_01.jpg ...`, ML + 3, y + 5.5);
+    y += 11;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // BAS DE PAGE : INFO MACHINE (gauche) + NOM + SIGNATURE (droite)
+  // ══════════════════════════════════════════════════════════
+  checkPage(65);
+
+  const boxLeft  = ML;
+  const boxRight = W / 2 + 5;
+  const boxW1    = W/2 - ML - 5;
+  const boxW2    = W/2 - MR - 5;
+  const infoY    = y;
+
+  // Bloc INFO MACHINE — encadré avec titre centré gras
+  doc.setDrawColor(...DARK);
+  doc.setLineWidth(0.4);
+  doc.rect(boxLeft, infoY, boxW1, 40, 'S');
+
+  // Titre "INFO MACHINE" centré en gras souligné
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...BLACK);
+  const imTitle = 'INFO MACHINE';
+  doc.text(imTitle, boxLeft + boxW1/2, infoY + 7, { align: 'center' });
+  const imW = doc.getTextWidth(imTitle);
+  doc.setLineWidth(0.4);
+  doc.line(boxLeft + boxW1/2 - imW/2, infoY + 8, boxLeft + boxW1/2 + imW/2, infoY + 8);
+  doc.setLineWidth(0.2);
+
+  // Séparateur sous titre
+  doc.setDrawColor(...LGREY);
+  doc.line(boxLeft, infoY + 10, boxLeft + boxW1, infoY + 10);
+
+  // Contenu INFO MACHINE
+  const infoItems = [
+    ["Nature de l'intervention : ", bon.naturePanne || ''],
+    ['Marque : ',                   bon.materielMarque || ''],
+    ['Mod\u00e8le : ',              bon.materielModele || ''],
+    ['N\u00b0 d\'identification : ', bon.materielSerie || ''],
+    ['Heures / Kms : ',             [bon.relHeure ? bon.relHeure+' h' : '', bon.relKm ? bon.relKm+' km' : ''].filter(Boolean).join(' / ') || ''],
+  ];
+
+  let iy = infoY + 15;
+  infoItems.forEach(([lbl, val]) => {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...DARK);
+    doc.text(lbl, boxLeft + 3, iy);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ORANGE);
+    doc.text(String(val), boxLeft + 3 + doc.getTextWidth(lbl), iy, { maxWidth: boxW1 - doc.getTextWidth(lbl) - 4 });
+    iy += 5.5;
+  });
+
+  // Bloc droit — Nom + Signature
+  doc.setDrawColor(...DARK);
+  doc.setLineWidth(0.3);
+  doc.rect(boxRight, infoY, boxW2, 12, 'S');
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...DARK);
+  doc.text('Nom : ', boxRight + 3, infoY + 7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ORANGE);
+  doc.text(bon.clientNom || '—', boxRight + 16, infoY + 7);
+
+  // Zone signature
+  const sigY = infoY + 14;
+  const sigH = 28;
+  doc.setDrawColor(...LGREY);
+  doc.setLineWidth(0.2);
+  doc.setLineDashPattern([1, 1], 0);
+  doc.rect(boxRight, sigY, boxW2, sigH, 'S');
+  doc.setLineDashPattern([], 0);
+
+  if (bon.signature) {
+    try {
+      doc.addImage(bon.signature, 'PNG', boxRight + 2, sigY + 2, boxW2 - 4, sigH - 4);
+    } catch(e) {}
+  } else {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(...LGREY);
+    doc.text('Signature', boxRight + boxW2/2, sigY + sigH/2 + 2, { align: 'center' });
+  }
+
+  // Ligne "Signature" sous le bloc
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...DARK);
+  doc.text('Signature :', boxRight + 3, sigY + sigH + 5);
+  // Nom du signataire
+  if (bon.nomSignataire) {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...DARK);
+    doc.setFontSize(9);
+    doc.text(bon.nomSignataire, boxRight + boxW2 / 2, sigY + sigH + 11, { align: 'center' });
+    // Ligne de soulignement
+    const nW = doc.getTextWidth(bon.nomSignataire);
+    doc.setDrawColor(...LGREY);
+    doc.setLineWidth(0.3);
+    doc.line(boxRight + boxW2/2 - nW/2 - 2, sigY + sigH + 12.5,
+             boxRight + boxW2/2 + nW/2 + 2, sigY + sigH + 12.5);
+  } else {
+    // Ligne vide pour signer le nom à la main
+    doc.setDrawColor(...LGREY);
+    doc.setLineWidth(0.3);
+    doc.line(boxRight + 3, sigY + sigH + 11, boxRight + boxW2 - 3, sigY + sigH + 11);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.setTextColor(...GREY);
+    doc.text('Nom du signataire', boxRight + boxW2 / 2, sigY + sigH + 15, { align: 'center' });
+  }
+
+  // ── PIED DE PAGE ─────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(...LGREY);
+    doc.setLineWidth(0.3);
+    doc.line(ML, 285, W - MR, 285);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...GREY);
+    doc.text('POWER-flex  •  contact@power-flex.fr', ML, 290);
+    doc.text(`${bon.num}  —  Page ${p}/${pageCount}`, W - MR, 290, { align: 'right' });
+  }
+
+  doc.save(`${bon.num}_${(bon.clientNom || 'client').replace(/\s+/g, '_')}.pdf`);
+  toast('📄 PDF généré !');
+  return doc;
+}
+
+function generatePDFByIndex(i) {
+  const bon = bons[i];
+  generatePDF({ ...bon, nbPhotos: bon.photos ? bon.photos.length : 0 });
+}
+
+// ============================================================
+// MAILTO — ouvre l'appli mail avec tout pré-rempli
+// ============================================================
+function openMailApp(bonData) {
+  const bon = bonData || getBonCourant();
+  const dateF = bon.dateIntervention ? new Date(bon.dateIntervention).toLocaleDateString('fr-FR') : '—';
+  const total = (bon.articles||[]).reduce((s,a) => s + (parseFloat(a.qty)||0)*(parseFloat(a.pu)||0), 0);
+
+  const subject = `${bon.num} — Bon d'intervention — ${bon.clientNom || ''}`;
+
+  const artLines = (bon.articles||[]).map(a => {
+    const t = (parseFloat(a.qty)||0)*(parseFloat(a.pu)||0);
+    return `  • [${a.ref||'—'}] ${a.des||'—'}  ×${a.qty}  → ${t.toFixed(2)} €`;
+  }).join('\n');
+
+  const body = `Bonjour,
+
+Veuillez trouver ci-joint le bon d'intervention ${bon.num}.
+
+──────────────────────────────
+INFORMATIONS CLIENT
+──────────────────────────────
+Client         : ${bon.clientNom || '—'}
+Adresse        : ${bon.clientAdresse || '—'}
+Date           : ${dateF}
+Technicien     : ${bon.technicien || '—'}
+Nature         : ${bon.naturePanne || '—'}
+
+──────────────────────────────
+MATÉRIEL
+──────────────────────────────
+Marque / Modèle : ${bon.materielMarque || '—'} ${bon.materielModele || ''}
+N° série        : ${bon.materielSerie || '—'}
+Kilométrage     : ${bon.relKm ? bon.relKm + ' km' : '—'}
+Heures          : ${bon.relHeure ? bon.relHeure + ' h' : '—'}
+
+──────────────────────────────
+INTERVENTION
+──────────────────────────────
+${bon.descIntervention || '—'}
+
+──────────────────────────────
+ARTICLES
+──────────────────────────────
+${artLines || '  Aucun article'}
+
+TOTAL HT : ${total.toFixed(2)} €
+
+──────────────────────────────
+${bon.observations ? 'Observations : ' + bon.observations + '\n\n──────────────────────────────\n' : ''}${bon.nbPhotos > 0 || (bon.photos && bon.photos.length > 0) ? '📎 ' + (bon.nbPhotos || bon.photos.length) + ' photo(s) en pièce jointe (voir fichiers séparés)\n\n──────────────────────────────\n' : ''}
+
+Cordialement`;
+
+  const mailto = `mailto:contact@power-flex.fr?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+}
+
+function openMailByIndex(i) {
+  const bon = bons[i];
+  openMailApp({ ...bon, nbPhotos: bon.photos ? bon.photos.length : 0 });
+}
+
+function printBonByIndex(i) {
+  generatePDFByIndex(i);
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// DÉMARRAGE
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initNewBon();
+  renderBonsList();
+  renderCatalogue();
+  initSignature(); // attache les events uniquement
+  window.addEventListener('resize', () => { setupCanvas(); });
+  // L'onglet par défaut est "bons", donc le canvas est caché.
+  // setupCanvas() sera appelé automatiquement quand l'utilisateur
+  // cliquera sur l'onglet "Nouveau" via switchTab().
+});
+</script>
+</body>
+</html>
